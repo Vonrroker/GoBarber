@@ -40,7 +40,7 @@ class UserController {
       password: Yup.string()
         .min(6)
         .when('oldPassword', (oldPassword, field) =>
-          oldPassword ? field.required : field
+          oldPassword ? field.required() : field
         ),
       confirmPassword: Yup.string().when('password', (password, field) =>
         password ? field.required().oneOf([Yup.ref('password')]) : field
@@ -51,12 +51,14 @@ class UserController {
       return res.status(400).json({ error: 'Validate is fails' });
     }
 
-    const { email, oldPassword } = req.body;
+    const { oldPassword } = req.body;
 
     const user = await User.findByPk(req.userId);
 
-    if (email && email !== user.email) {
-      const userExists = await User.findOne({ where: { email } });
+    if (req.body.email && req.body.email !== user.email) {
+      const userExists = await User.findOne({
+        where: { email: req.body.email },
+      });
 
       if (userExists) {
         return res.status(400).json({ error: 'User alredy exist' });
@@ -69,7 +71,7 @@ class UserController {
 
     await user.update(req.body);
 
-    const { id, name, avatar } = await User.findByPk(req.userId, {
+    const { id, name, email, avatar } = await User.findByPk(req.userId, {
       include: [
         {
           model: File,
